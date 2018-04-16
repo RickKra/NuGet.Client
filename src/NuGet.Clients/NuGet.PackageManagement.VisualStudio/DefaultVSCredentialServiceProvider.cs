@@ -29,7 +29,6 @@ namespace NuGet.PackageManagement.VisualStudio
             : this(AsyncServiceProvider.GlobalProvider, outputConsoleLogger)
         { }
 
-        [ImportingConstructor]
         internal DefaultVSCredentialServiceProvider(
             IAsyncServiceProvider asyncServiceProvider,
             Lazy<INuGetUILogger> outputConsoleLogger
