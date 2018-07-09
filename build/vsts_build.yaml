@@ -70,6 +70,8 @@ phases:
 
   - task: MicroBuildLocalizationPlugin@1
     displayName: "Install Localization Plugin"
+    inputs:
+      feedSource: "https://devdiv-test.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json"
 
   - task: MicroBuildSwixPlugin@1
     displayName: "Install Swix Plugin"
