@@ -135,6 +135,7 @@ phases:
       solution: "setup\\Microsoft.VisualStudio.NuGet.Core.vsmanproj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
+      msbuildArguments: "/clp:Verbosity=Detailed"
     condition: " and(succeeded(),eq(variables['BuildRTM'], 'false')) "
 
   - task: MSBuild@1
@@ -143,6 +144,7 @@ phases:
       solution: "setup\\Microsoft.VisualStudio.NuGet.BuildTools.vsmanproj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
+      msbuildArguments: "/clp:Verbosity=Detailed"
     condition: " and(succeeded(),eq(variables['BuildRTM'], 'false')) "
 
   - task: PowerShell@1
