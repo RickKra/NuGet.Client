@@ -30,12 +30,6 @@ phases:
   queue:
     name: VSEng-MicroBuildVS2017
     timeoutInMinutes: 90
-    parallel: 2
-    matrix:
-      RTM:
-        BuildRTM: "true"
-      NonRTM:
-        BuildRTM: "false"
     demands: 
       - DotNetFramework
       - msbuild
@@ -58,7 +52,7 @@ phases:
   - task: PowerShell@1
     inputs:
       scriptName: "$(Build.Repository.LocalPath)\\scripts\\cibuild\\ConfigureVstsBuild.ps1"
-      arguments: "-BuildCounterFile $(BuildCounterFile) -BuildInfoJsonFile $(BuildInfoJsonFile) -BuildRTM $(BuildRTM) -SkipUpdateBuildNumber"
+      arguments: "-BuildCounterFile $(BuildCounterFile) -BuildInfoJsonFile $(BuildInfoJsonFile) -BuildRTM false -SkipUpdateBuildNumber"
     displayName: "Configure VSTS CI Environment"
 
   - task: PowerShell@1
@@ -66,11 +60,19 @@ phases:
     inputs:
       scriptType: "inlineScript"
       inlineScript: |
+        md (Join-Path $env:BUILD_STAGINGDIRECTORY 'logs') | Out-Null
         gci env:* | sort-object name
 
   - task: MicroBuildLocalizationPlugin@1
     displayName: "Install Localization Plugin"
     inputs:
+      feedSource: "https://devdiv-test.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json"
+
+  - task: MicroBuildSigningPlugin@1
+    displayName: "Install Signing Plugin"
+    inputs:
+      signType: "$(SigningType)"
+      esrpSigning: "true"
       feedSource: "https://devdiv-test.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json"
 
   - task: MicroBuildSwixPlugin@1
@@ -84,7 +86,7 @@ phases:
       solution: "build\\build.proj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/t:RestoreVS15 /p:BuildNumber=$(BuildNumber) /p:BuildRTM=$(BuildRTM) /v:m"
+      msbuildArguments: "/t:RestoreVS15 /p:BuildNumber=$(BuildNumber) /p:BuildRTM=false /v:m"
 
   - task: MSBuild@1
     displayName: "Build for VS2017"
@@ -92,7 +94,7 @@ phases:
       solution: "build\\build.proj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/t:BuildVS15NoVSIX /p:NUGET_PFX_PATH=$(Build.Repository.LocalPath)\\keys\\NuGetKey.snk /p:MS_PFX_PATH=$(Build.Repository.LocalPath)\\keys\\35MSSharedLib1024.snk /p:BuildRTM=$(BuildRTM) /p:BuildNumber=$(BuildNumber)"
+      msbuildArguments: "/t:BuildVS15NoVSIX /p:NUGET_PFX_PATH=$(Build.Repository.LocalPath)\\keys\\NuGetKey.snk /p:MS_PFX_PATH=$(Build.Repository.LocalPath)\\keys\\35MSSharedLib1024.snk /p:BuildRTM=false /p:BuildNumber=$(BuildNumber) /bl:$(Build.StagingDirectory)\\logs\\build.binlog"
 
   - task: MSBuild@1
     displayName: "Localize Assemblies"
@@ -100,8 +102,7 @@ phases:
       solution: "build\\loc.proj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/t:AfterBuild"
-    condition: " and(succeeded(),eq(variables['BuildRTM'], 'false')) "
+      msbuildArguments: "/t:AfterBuild /bl:$(Build.StagingDirectory)\\logs\\loc.binlog"
 
   - task: MSBuild@1
     displayName: "Pack Nupkgs"
@@ -109,7 +110,7 @@ phases:
       solution: "build\\build.proj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/t:Pack /p:BuildRTM=$(BuildRTM) /p:ExcludeTestProjects=$(BuildRTM) /p:BuildNumber=$(BuildNumber)"
+      msbuildArguments: "/t:Pack /p:BuildRTM=false /p:ExcludeTestProjects=false /p:BuildNumber=$(BuildNumber) /bl:$(Build.StagingDirectory)\\logs\\pack.binlog"
 
   - task: MSBuild@1
     displayName: "Pack VSIX"
@@ -117,8 +118,7 @@ phases:
       solution: "build\\build.proj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/t:BuildVS15VSIX /p:BuildRTM=$(BuildRTM) /p:ExcludeTestProjects=$(BuildRTM) /p:IsCIBuild=true"
-    condition: "and(succeeded(),eq(variables['BuildRTM'], 'false'))"
+      msbuildArguments: "/t:BuildVS15VSIX /p:BuildRTM=false /p:ExcludeTestProjects=false /p:IsCIBuild=true /bl:$(Build.StagingDirectory)\\logs\\vsix.binlog"
 
   - task: MSBuild@1 
     displayName: "Generate Build Tools package" 
@@ -126,8 +126,7 @@ phases:
       solution: "setup/Microsoft.VisualStudio.NuGet.BuildTools.vsmanproj" 
       msbuildVersion: "15.0" 
       configuration: "$(BuildConfiguration)" 
-      msbuildArguments: "/p:BuildNumber=$(BuildNumber) /p:IsVsixBuild=true" 
-    condition: " and(succeeded(), eq(variables['BuildRTM'], 'false'))"
+      msbuildArguments: "/p:BuildNumber=$(BuildNumber) /p:IsVsixBuild=true /bl:$(Build.StagingDirectory)\\logs\\tools.binlog" 
 
   - task: MSBuild@1
     displayName: "Generate VSMAN file for NuGet Core VSIX"
@@ -135,8 +134,7 @@ phases:
       solution: "setup\\Microsoft.VisualStudio.NuGet.Core.vsmanproj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/clp:Verbosity=Detailed"
-    condition: " and(succeeded(),eq(variables['BuildRTM'], 'false')) "
+      msbuildArguments: "/bl:$(Build.StagingDirectory)\\logs\\core.binlog"
 
   - task: MSBuild@1
     displayName: "Generate VSMAN file for Build Tools VSIX"
@@ -144,8 +142,7 @@ phases:
       solution: "setup\\Microsoft.VisualStudio.NuGet.BuildTools.vsmanproj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/clp:Verbosity=Detailed"
-    condition: " and(succeeded(),eq(variables['BuildRTM'], 'false')) "
+      msbuildArguments: "/bl:$(Build.StagingDirectory)\\logs\\vsman.binlog"
 
   - task: PowerShell@1
     displayName: "Create EndToEnd Test Package"
@@ -153,24 +150,29 @@ phases:
       scriptName: "$(Build.Repository.LocalPath)\\scripts\\cibuild\\CreateEndToEndTestPackage.ps1"
       arguments: "-c $(BuildConfiguration) -tv 15 -out $(Build.Repository.LocalPath)\\artifacts\\VS15"
       failOnStandardError: "false"
-    condition: " and(succeeded(),eq(variables['BuildRTM'], 'false')) "
 
   - task: PowerShell@1
     displayName: "Validate VSIX Localization"
     inputs:
       scriptName: "$(Build.Repository.LocalPath)\\scripts\\cibuild\\BuildValidator.ps1"
-      arguments: "-BuildRTM $(BuildRTM) -BuildOutputTargetPath $(BuildOutputTargetPath) -ValidateVsix"
-    condition: " and(succeeded(), eq(variables['IsOfficialBuild'], 'true')) "
+      arguments: "-BuildRTM false -BuildOutputTargetPath $(BuildOutputTargetPath) -ValidateVsix"
   
   - task: PowerShell@1
     displayName: "Validate Repository Artifacts Localization"
     inputs:
       scriptName: "$(Build.Repository.LocalPath)\\scripts\\cibuild\\BuildValidator.ps1"
-      arguments: "-BuildRTM $(BuildRTM) -BuildOutputTargetPath $(BuildOutputTargetPath)"
-    condition: " and(succeeded(), eq(variables['IsOfficialBuild'], 'true')) "
+      arguments: "-BuildRTM false -BuildOutputTargetPath $(BuildOutputTargetPath)"
+
+  - task: PublishBuildArtifacts@1
+    displayName: "Publish BinLogs"
+    inputs:
+      PathtoPublish: "$(Build.StagingDirectory)\\logs"
+      ArtifactName: "logs"
+      ArtifactType: "Container"
+    condition: "always()"
 
   - task: MicroBuildCleanup@1
-    displayName: "Perform Cleanup Tasks"
+    displayName: "Send Telemetry"
 
   - task: PowerShell@1
     displayName: "Cleanup on Failure"
