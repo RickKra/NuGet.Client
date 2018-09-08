@@ -60,7 +60,7 @@ phases:
     inputs:
       scriptType: "inlineScript"
       inlineScript: |
-        md (Join-Path $env:BUILD_STAGINGDIRECTORY 'logs') | Out-Null
+        md (Join-Path $env:BUILD_STAGINGDIRECTORY 'binlogs') | Out-Null
         gci env:* | sort-object name
 
   - task: MicroBuildLocalizationPlugin@1
@@ -94,7 +94,7 @@ phases:
       solution: "build\\build.proj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/t:BuildVS15NoVSIX /p:NUGET_PFX_PATH=$(Build.Repository.LocalPath)\\keys\\NuGetKey.snk /p:MS_PFX_PATH=$(Build.Repository.LocalPath)\\keys\\35MSSharedLib1024.snk /p:BuildRTM=false /p:BuildNumber=$(BuildNumber) /bl:$(Build.StagingDirectory)\\logs\\build.binlog"
+      msbuildArguments: "/t:BuildVS15NoVSIX /p:NUGET_PFX_PATH=$(Build.Repository.LocalPath)\\keys\\NuGetKey.snk /p:MS_PFX_PATH=$(Build.Repository.LocalPath)\\keys\\35MSSharedLib1024.snk /p:BuildRTM=false /p:BuildNumber=$(BuildNumber) /bl:$(Build.StagingDirectory)\\binlogs\\build.binlog"
 
   - task: MSBuild@1
     displayName: "Localize Assemblies"
@@ -102,7 +102,7 @@ phases:
       solution: "build\\loc.proj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/t:AfterBuild /bl:$(Build.StagingDirectory)\\logs\\loc.binlog"
+      msbuildArguments: "/t:AfterBuild /bl:$(Build.StagingDirectory)\\binlogs\\loc.binlog"
 
   - task: MSBuild@1
     displayName: "Pack Nupkgs"
@@ -110,7 +110,7 @@ phases:
       solution: "build\\build.proj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/t:Pack /p:BuildRTM=false /p:ExcludeTestProjects=false /p:BuildNumber=$(BuildNumber) /bl:$(Build.StagingDirectory)\\logs\\pack.binlog"
+      msbuildArguments: "/t:Pack /p:BuildRTM=false /p:ExcludeTestProjects=false /p:BuildNumber=$(BuildNumber) /bl:$(Build.StagingDirectory)\\binlogs\\pack.binlog"
 
   - task: MSBuild@1
     displayName: "Pack VSIX"
@@ -118,7 +118,7 @@ phases:
       solution: "build\\build.proj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/t:BuildVS15VSIX /p:BuildRTM=false /p:ExcludeTestProjects=false /p:IsCIBuild=true /bl:$(Build.StagingDirectory)\\logs\\vsix.binlog"
+      msbuildArguments: "/t:BuildVS15VSIX /p:BuildRTM=false /p:ExcludeTestProjects=false /p:IsCIBuild=true /bl:$(Build.StagingDirectory)\\binlogs\\vsix.binlog"
 
   - task: MSBuild@1 
     displayName: "Generate Build Tools package" 
@@ -126,7 +126,7 @@ phases:
       solution: "setup/Microsoft.VisualStudio.NuGet.BuildTools.vsmanproj" 
       msbuildVersion: "15.0" 
       configuration: "$(BuildConfiguration)" 
-      msbuildArguments: "/p:BuildNumber=$(BuildNumber) /p:IsVsixBuild=true /bl:$(Build.StagingDirectory)\\logs\\tools.binlog" 
+      msbuildArguments: "/p:BuildNumber=$(BuildNumber) /p:IsVsixBuild=true /bl:$(Build.StagingDirectory)\\binlogs\\tools.binlog" 
 
   - task: MSBuild@1
     displayName: "Generate VSMAN file for NuGet Core VSIX"
@@ -134,7 +134,7 @@ phases:
       solution: "setup\\Microsoft.VisualStudio.NuGet.Core.vsmanproj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/bl:$(Build.StagingDirectory)\\logs\\core.binlog"
+      msbuildArguments: "/bl:$(Build.StagingDirectory)\\binlogs\\core.binlog"
 
   - task: MSBuild@1
     displayName: "Generate VSMAN file for Build Tools VSIX"
@@ -142,7 +142,7 @@ phases:
       solution: "setup\\Microsoft.VisualStudio.NuGet.BuildTools.vsmanproj"
       msbuildVersion: "15.0"
       configuration: "$(BuildConfiguration)"
-      msbuildArguments: "/bl:$(Build.StagingDirectory)\\logs\\vsman.binlog"
+      msbuildArguments: "/bl:$(Build.StagingDirectory)\\binlogs\\vsman.binlog"
 
   - task: PowerShell@1
     displayName: "Create EndToEnd Test Package"
@@ -166,8 +166,8 @@ phases:
   - task: PublishBuildArtifacts@1
     displayName: "Publish BinLogs"
     inputs:
-      PathtoPublish: "$(Build.StagingDirectory)\\logs"
-      ArtifactName: "logs"
+      PathtoPublish: "$(Build.StagingDirectory)\\binlogs"
+      ArtifactName: "binlogs"
       ArtifactType: "Container"
     condition: "always()"
 
