@@ -60,7 +60,6 @@ phases:
     inputs:
       scriptType: "inlineScript"
       inlineScript: |
-        md (Join-Path $env:BUILD_STAGINGDIRECTORY 'binlogs') | Out-Null
         gci env:* | sort-object name
 
   - task: MicroBuildLocalizationPlugin@1
