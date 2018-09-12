@@ -62,19 +62,19 @@ phases:
       inlineScript: |
         gci env:* | sort-object name
 
-  - task: MicroBuildLocalizationPlugin@1
+  - task: MicroBuildLocalizationPlugin@2
     displayName: "Install Localization Plugin"
     inputs:
       feedSource: "https://devdiv-test.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json"
 
-  - task: MicroBuildSigningPlugin@1
+  - task: MicroBuildSigningPlugin@2
     displayName: "Install Signing Plugin"
     inputs:
       signType: "$(SigningType)"
       esrpSigning: "true"
       feedSource: "https://devdiv-test.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json"
 
-  - task: MicroBuildSwixPlugin@1
+  - task: MicroBuildSwixPlugin@2
     displayName: "Install Swix Plugin"
     inputs:
       feedSource: "https://devdiv-test.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json"
